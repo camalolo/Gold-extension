@@ -17,32 +17,32 @@ async function updateIcon(priceText) {
     ctx.drawImage(bitmap, 0, 0, canvasSize, canvasSize);
     console.log('Base icon drawn on canvas');
 
-    // Shorten price to fit
-    const shortPrice = priceText === 'Error' || priceText === 'No Key'
-      ? priceText
-      : parseFloat(priceText).toFixed(0);
+    // Shorten price to fit with abbreviation option
+    let shortPrice;
+    if (priceText === 'Error' || priceText === 'No Key') {
+      shortPrice = priceText;
+    } else {
+      const numPrice = parseFloat(priceText);
+      const abbreviation = await new Promise(resolve => chrome.storage.local.get('abbreviation', result => resolve(result.abbreviation)));
+      if (abbreviation) {
+        shortPrice = numPrice >= 1000 ? (numPrice / 1000).toFixed(1) : numPrice.toFixed(0);
+      } else {
+        shortPrice = numPrice.toFixed(0);
+      }
+    }
     console.log('Drawing price text:', shortPrice);
 
-    // Dynamically scale font to maximize width
-    let fontSize = 20; // Start with a larger size
+    // Set font size and background rectangle to occupy one third of the canvas height
+    const desiredRectHeight = canvasSize / 1.75;
+    const padding = 2;
+    const fontSize = desiredRectHeight - (padding * 2);
     ctx.font = `bold ${fontSize}px Arial`;
-    let textWidth = ctx.measureText(shortPrice).width;
-    const maxWidth = canvasSize; // Target width (canvasSizepx canvas - 2px margin on each side)
-
-    while (textWidth > maxWidth && fontSize > 8) { // Minimum size of 8px
-      fontSize -= 1;
-      ctx.font = `bold ${fontSize}px Arial`;
-      textWidth = ctx.measureText(shortPrice).width;
-    }
-    console.log(`Adjusted font size to ${fontSize}px, text width: ${textWidth}px`);
-
-    // Calculate dimensions for the background rectangle
-    const textHeight = fontSize; // Approximate height based on font size
-    const padding = 2; // Padding around text
+    const textWidth = ctx.measureText(shortPrice).width;
+    
+    const rectHeight = desiredRectHeight;
     const rectWidth = textWidth + padding * 2;
-    const rectHeight = textHeight + padding * 2;
-    const rectX = (canvasSize - rectWidth) / 2; // Center horizontally
-    const rectY = canvasSize - rectHeight; // Position at bottom with 2px margin
+    const rectX = (canvasSize - rectWidth) / 2;
+    const rectY = canvasSize - rectHeight;
     const cornerRadius = 4; // Rounded corner radius
 
     // Draw black background with rounded corners

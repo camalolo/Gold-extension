@@ -82,7 +82,7 @@ async function updateIcon(priceText) {
   }
 }
 
-function fetchGoldPrice() {
+function fetchGoldPrice(forceUpdate = false) {
   console.log('fetchGoldPrice called');
   chrome.storage.local.get(['apiKey', 'price', 'lastUpdate'], (result) => {
     console.log('Storage data retrieved:', result);
@@ -98,7 +98,7 @@ function fetchGoldPrice() {
     const lastUpdate = result.lastUpdate || 0;
     console.log('Current time:', now, 'Last update:', lastUpdate);
 
-    if (now - lastUpdate > 30 * 60 * 1000) { // Update every 30 minutes
+    if ((now - lastUpdate > 30 * 60 * 1000) || forceUpdate) { // Update every 30 minutes
       console.log('Fetching new price from API');
       fetch(url, {
         mode: 'cors',
@@ -137,7 +137,7 @@ function fetchGoldPrice() {
   });
   chrome.action.onClicked.addListener(() => {
     console.log('Icon clicked, refreshing gold price');
-    fetchGoldPrice();
+    fetchGoldPrice(true);
   });
 }
 

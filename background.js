@@ -1,94 +1,47 @@
-// background.js
-async function updateIcon(priceText) {
-  console.log('updateIcon called with priceText:', priceText);
+// Function to update the badge with price text
+function updateBadge(priceText) {
+  console.log('updateBadge called with priceText:', priceText);
   try {
-    const canvasSize = 48;
-    const canvas = new OffscreenCanvas(canvasSize, canvasSize);
-    const ctx = canvas.getContext('2d');
-
-    // Fetch and draw the base icon
-    console.log('Fetching base icon from:', chrome.runtime.getURL('icon48.png'));
-    const response = await fetch(chrome.runtime.getURL('icon48.png'));
-    if (!response.ok) throw new Error('Failed to load base icon');
-    const blob = await response.blob();
-    console.log('Base icon blob loaded successfully');
-    const bitmap = await createImageBitmap(blob);
-    console.log('Image bitmap created');
-    ctx.drawImage(bitmap, 0, 0, canvasSize, canvasSize);
-    console.log('Base icon drawn on canvas');
-
-    // Shorten price to fit with abbreviation option
+    // Shorten price to fit badge (max 4 characters)
     let shortPrice;
     if (priceText === 'Error' || priceText === 'No Key') {
-      shortPrice = priceText;
+      shortPrice = priceText.slice(0, 4); // "Erro" or "No K"
     } else {
       const numPrice = parseFloat(priceText);
-      const abbreviation = await new Promise(resolve => chrome.storage.local.get('abbreviation', result => resolve(result.abbreviation)));
-      if (abbreviation) {
-        shortPrice = numPrice >= 1000 ? (numPrice / 1000).toFixed(1) : numPrice.toFixed(0);
-      } else {
-        shortPrice = numPrice.toFixed(0);
-      }
+      const abbreviation = chrome.storage.local.get('abbreviation').then(result => result.abbreviation || false);
+      return abbreviation.then(abbrev => {
+        if (abbrev && numPrice >= 1000) {
+          shortPrice = (numPrice / 1000).toFixed(1) + 'k'; // e.g., "1.2k"
+        } else {
+          shortPrice = numPrice.toFixed(0); // e.g., "1234"
+        }
+        shortPrice = shortPrice.slice(0, 4); // Ensure it fits (e.g., "1234" or "1.2k")
+        chrome.action.setBadgeText({ text: shortPrice });
+        chrome.action.setBadgeBackgroundColor({ color: '#222222' }); // Dark grey
+        console.log('Badge updated with:', shortPrice);
+      });
     }
-    console.log('Drawing price text:', shortPrice);
 
-    // Set font size and background rectangle to occupy one third of the canvas height
-    const desiredRectHeight = canvasSize / 1.75;
-    const padding = 2;
-    const fontSize = desiredRectHeight - (padding * 2);
-    ctx.font = `bold ${fontSize}px Arial`;
-    const textWidth = ctx.measureText(shortPrice).width;
-    
-    const rectHeight = desiredRectHeight;
-    const rectWidth = textWidth + padding * 2;
-    const rectX = (canvasSize - rectWidth) / 2;
-    const rectY = canvasSize - rectHeight;
-    const cornerRadius = 4; // Rounded corner radius
-
-    // Draw black background with rounded corners
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.roundRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
-    ctx.fill();
-    console.log('Black background drawn at:', { x: rectX, y: rectY, width: rectWidth, height: rectHeight });
-
-    // Draw the price text in white
-    ctx.fillStyle = 'white'; // Text color
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const textX = canvasSize / 2; // Center of the canvas
-    const textY = rectY + rectHeight / 2; // Center of the rectangle
-    ctx.fillText(shortPrice, textX, textY);
-    console.log('White text drawn at:', { x: textX, y: textY });
-
-    // Update the icon
-    const imageData = ctx.getImageData(0, 0, canvasSize, canvasSize);
-    console.log('Updating icon with new image data');
-    chrome.action.setIcon({ imageData: imageData });
-    console.log('Icon updated successfully');
+    // Handle non-numeric cases immediately
+    shortPrice = shortPrice.slice(0, 4);
+    chrome.action.setBadgeText({ text: shortPrice });
+    chrome.action.setBadgeBackgroundColor({ color: '#222222' }); // Dark grey
+    console.log('Badge updated with:', shortPrice);
   } catch (error) {
-    console.error('Error updating icon:', error);
-    const canvas = new OffscreenCanvas(canvasSize, canvasSize);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'red';
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Err', canvasSize / 2, canvasSize / 2);
-    chrome.action.setIcon({ imageData: ctx.getImageData(0, 0, canvasSize, canvasSize) });
-    console.log('Fallback error icon set');
+    console.error('Error updating badge:', error);
+    chrome.action.setBadgeText({ text: 'Err' });
+    chrome.action.setBadgeBackgroundColor({ color: '#FF0000' }); // Red for error
   }
 }
 
+// Function to fetch gold price and update badge
 function fetchGoldPrice(forceUpdate = false) {
   console.log('fetchGoldPrice called');
   chrome.storage.local.get(['apiKey', 'price', 'lastUpdate'], (result) => {
     console.log('Storage data retrieved:', result);
     if (!result.apiKey) {
       console.log('No API key found');
-      updateIcon('No Key');
+      updateBadge('No Key');
       return;
     }
 
@@ -116,7 +69,7 @@ function fetchGoldPrice(forceUpdate = false) {
           chrome.storage.local.set({ price: newPrice, lastUpdate: now }, () => {
             console.log('Price and lastUpdate saved to storage');
           });
-          updateIcon(newPrice);
+          updateBadge(newPrice);
         })
         .catch(error => {
           if (error instanceof TypeError) {
@@ -124,17 +77,19 @@ function fetchGoldPrice(forceUpdate = false) {
             setTimeout(fetchGoldPrice, 30000);
           } else {
             console.error('Fetch error:', error);
-            updateIcon('Error');
+            updateBadge('Error');
           }
         });
     } else if (result.price) {
       console.log('Using cached price:', result.price);
-      updateIcon(result.price); // Use cached price
+      updateBadge(result.price); // Use cached price
     } else {
       console.log('No cached price available');
-      updateIcon('No Data');
+      updateBadge('No Data');
     }
   });
+
+  // Add click listener to refresh price
   chrome.action.onClicked.addListener(() => {
     console.log('Icon clicked, refreshing gold price');
     fetchGoldPrice(true);

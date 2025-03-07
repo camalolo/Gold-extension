@@ -2,7 +2,8 @@
 async function updateIcon(priceText) {
     console.log('updateIcon called with priceText:', priceText);
     try {
-      const canvas = new OffscreenCanvas(48, 48);
+      const canvasSize = 48;
+      const canvas = new OffscreenCanvas(canvasSize, canvasSize);
       const ctx = canvas.getContext('2d');
   
       // Fetch and draw the base icon
@@ -13,7 +14,7 @@ async function updateIcon(priceText) {
       console.log('Base icon blob loaded successfully');
       const bitmap = await createImageBitmap(blob);
       console.log('Image bitmap created');
-      ctx.drawImage(bitmap, 0, 0, 48, 48);
+      ctx.drawImage(bitmap, 0, 0, canvasSize, canvasSize);
       console.log('Base icon drawn on canvas');
   
       // Shorten price to fit
@@ -26,7 +27,7 @@ async function updateIcon(priceText) {
       let fontSize = 20; // Start with a larger size
       ctx.font = `bold ${fontSize}px Arial`;
       let textWidth = ctx.measureText(shortPrice).width;
-      const maxWidth = 44; // Target width (48px canvas - 2px margin on each side)
+      const maxWidth = canvasSize; // Target width (canvasSizepx canvas - 2px margin on each side)
   
       while (textWidth > maxWidth && fontSize > 8) { // Minimum size of 8px
         fontSize -= 1;
@@ -40,8 +41,8 @@ async function updateIcon(priceText) {
       const padding = 2; // Padding around text
       const rectWidth = textWidth + padding * 2;
       const rectHeight = textHeight + padding * 2;
-      const rectX = (48 - rectWidth) / 2; // Center horizontally
-      const rectY = 48 - rectHeight; // Position at bottom with 2px margin
+      const rectX = (canvasSize - rectWidth) / 2; // Center horizontally
+      const rectY = canvasSize - rectHeight; // Position at bottom with 2px margin
       const cornerRadius = 4; // Rounded corner radius
   
       // Draw black background with rounded corners
@@ -55,28 +56,28 @@ async function updateIcon(priceText) {
       ctx.fillStyle = 'white'; // Text color
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const textX = 24; // Center of the 48px canvas
+      const textX = canvasSize / 2; // Center of the canvas
       const textY = rectY + rectHeight / 2; // Center of the rectangle
       ctx.fillText(shortPrice, textX, textY);
       console.log('White text drawn at:', { x: textX, y: textY });
   
       // Update the icon
-      const imageData = ctx.getImageData(0, 0, 48, 48);
+      const imageData = ctx.getImageData(0, 0, canvasSize, canvasSize);
       console.log('Updating icon with new image data');
       chrome.action.setIcon({ imageData: imageData });
       console.log('Icon updated successfully');
     } catch (error) {
       console.error('Error updating icon:', error);
-      const canvas = new OffscreenCanvas(48, 48);
+      const canvas = new OffscreenCanvas(canvasSize, canvasSize);
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = 'red';
-      ctx.fillRect(0, 0, 48, 48);
+      ctx.fillRect(0, 0, canvasSize, canvasSize);
       ctx.fillStyle = 'white';
       ctx.font = 'bold 12px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Err', 24, 24);
-      chrome.action.setIcon({ imageData: ctx.getImageData(0, 0, 48, 48) });
+      ctx.fillText('Err', canvasSize/2, canvasSize/2);
+      chrome.action.setIcon({ imageData: ctx.getImageData(0, 0, canvasSize, canvasSize) });
       console.log('Fallback error icon set');
     }
   }

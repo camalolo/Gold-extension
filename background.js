@@ -41,7 +41,7 @@ async function updateIcon(priceText) {
       const rectWidth = textWidth + padding * 2;
       const rectHeight = textHeight + padding * 2;
       const rectX = (48 - rectWidth) / 2; // Center horizontally
-      const rectY = 48 - rectHeight - 2; // Position at bottom with 2px margin
+      const rectY = 48 - rectHeight; // Position at bottom with 2px margin
       const cornerRadius = 4; // Rounded corner radius
   
       // Draw black background with rounded corners

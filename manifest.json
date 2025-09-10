@@ -13,6 +13,7 @@
     "default_title": "Gold Price"
   },
   "permissions": ["storage", "alarms"],
+  "host_permissions": ["https://api.gold-api.com/*"],
   "background": {
     "service_worker": "background.js"
   }

@@ -7,14 +7,10 @@ function updateBadge(priceText) {
     if (priceText === 'Error') {
       shortPrice = 'Err';
     } else {
-      const numPrice = parseFloat(priceText);
+      const numberPrice = Number.parseFloat(priceText);
       const abbreviation = chrome.storage.local.get('abbreviation').then(result => result.abbreviation || false);
       return abbreviation.then(abbrev => {
-        if (abbrev && numPrice >= 1000) {
-          shortPrice = (numPrice / 1000).toFixed(1) + 'k'; // e.g., "1.2k"
-        } else {
-          shortPrice = numPrice.toFixed(0); // e.g., "1234"
-        }
+        shortPrice = (abbrev && numberPrice >= 1000) ? (numberPrice / 1000).toFixed(1) + 'k' : numberPrice.toFixed(0);
         shortPrice = shortPrice.slice(0, 4); // Ensure it fits (e.g., "1234" or "1.2k")
         chrome.action.setBadgeText({ text: shortPrice });
         chrome.action.setBadgeBackgroundColor({ color: '#222222' }); // Dark grey
@@ -66,7 +62,7 @@ function fetchGoldPrice(forceUpdate = false) {
           console.error('Fetch error:', error);
           if (error instanceof TypeError) {
             console.error('Failed to fetch. Retrying in 30 seconds');
-            setTimeout(fetchGoldPrice, 30000);
+            setTimeout(fetchGoldPrice, 30_000);
           } else {
             updateBadge('Error');
           }

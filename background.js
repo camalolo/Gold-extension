@@ -86,6 +86,18 @@ chrome.action.onClicked.addListener(() => {
   fetchGoldPrice(true);
 });
 
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Browser started, initializing gold price fetch');
+  fetchGoldPrice();
+});
+
+chrome.idle.onStateChanged.addListener((state) => {
+  if (state === 'active') {
+    console.log('System woke from idle, refreshing gold price');
+    fetchGoldPrice();
+  }
+});
+
 // Initial fetch when the extension loads
 console.log('Extension loaded, initiating first fetch');
 fetchGoldPrice();
